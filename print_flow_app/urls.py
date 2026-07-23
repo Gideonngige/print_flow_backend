@@ -1,7 +1,8 @@
 from django.urls import path
 from . import views
 from .api_views.auth import *
-from .api_views import *
+from .api_views.documents import *
+from .api_views.payments import *
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -20,6 +21,9 @@ urlpatterns = [
     # documents
     path("upload_document/", upload_document, name="upload_document"),
     path("create_print_job/", create_print_job, name="create_print_job"),
-    
+
+    # payments
+    path("pay_print_job/", pay_print_job, name="pay_print_job"),
+    path("mpesa_callback/", mpesa_callback, name="mpesa_callback"),
     
 ]
