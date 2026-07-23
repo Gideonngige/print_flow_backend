@@ -25,5 +25,7 @@ urlpatterns = [
     # payments
     path("pay_print_job/", pay_print_job, name="pay_print_job"),
     path("mpesa_callback/", mpesa_callback, name="mpesa_callback"),
+    path("print_job_status/<int:print_job_id>/", print_job_status, name="print_job_status",
+),
     
 ]

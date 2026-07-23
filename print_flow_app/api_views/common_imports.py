@@ -26,12 +26,16 @@ import requests
 import json
 from decimal import Decimal
 from datetime import timedelta
+import datetime
+import base64
+import random
 from django.utils import timezone
 
 import secrets
 
 # Local imports
 from print_flow_app.models import User, Document, PrintJob, Payment
+
 
 # Logging
 import logging
@@ -65,3 +69,4 @@ from django.http import JsonResponse
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+

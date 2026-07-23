@@ -1,4 +1,5 @@
 from .common_imports import *
+from .helper import *
 
 
 
@@ -234,3 +235,71 @@ def mpesa_callback(request):
             "ResultCode": 1,
             "ResultDesc": "Server Error"
         })
+
+
+
+
+
+# check print job status
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def print_job_status(request, print_job_id):
+
+    try:
+        print_job = PrintJob.objects.select_related(
+            "document",
+            "payment"
+        ).get(
+            id=print_job_id,
+            user=request.user
+        )
+
+    except PrintJob.DoesNotExist:
+        return Response(
+            {
+                "message": "Print job not found"
+            },
+            status=404
+        )
+
+    payment = Payment.objects.filter(
+        print_job=print_job
+    ).first()
+
+    return Response({
+
+        "success": True,
+
+        "print_job": {
+            "id": print_job.id,
+            "status": print_job.status,
+            "copies": print_job.copies,
+            "paper_size": print_job.paper_size,
+            "color": print_job.color,
+            "double_sided": print_job.double_sided,
+            "created_at": print_job.created_at,
+        },
+
+        "document": {
+            "id": print_job.document.id,
+            "name": print_job.document.original_name,
+            "pages": print_job.document.pages,
+            "status": print_job.document.status,
+        },
+
+        "payment": {
+            "status": payment.status if payment else "pending",
+            "amount": str(payment.amount) if payment else "0",
+            "receipt_number": (
+                payment.mpesa_receipt_number
+                if payment
+                else None
+            ),
+            "paid_at": (
+                payment.paid_at
+                if payment and payment.status == "paid"
+                else None
+            ),
+        }
+
+    })

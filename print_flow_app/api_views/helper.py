@@ -1,4 +1,5 @@
 from .common_imports import *
+import os
 
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
