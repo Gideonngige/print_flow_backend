@@ -54,3 +54,14 @@ import resend
 import traceback
 
 from django.utils.html import escape
+
+
+import os
+import cloudinary.uploader
+
+from PyPDF2 import PdfReader
+from django.core.files.base import ContentFile
+from django.http import JsonResponse
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated

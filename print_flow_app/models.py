@@ -68,15 +68,19 @@ class Document(models.Model):
         ('printed', 'Printed'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='documents/')
+    file = models.FileField(upload_to="documents/")
     original_name = models.CharField(max_length=255)
+    cloudinary_public_id = models.CharField(max_length=255, blank=True)
+    cloudinary_url = models.URLField(blank=True)
+    mime_type = models.CharField(max_length=100, blank=True)
     size = models.IntegerField()
+    pages = models.IntegerField(default=1)
+    status = models.CharField(max_length=20, choices=CHOICES, default="uploaded")
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    pages = models.IntegerField()
-    status = models.CharField(max_length=20, choices=CHOICES, default='uploaded')
     
     def __str__(self):
         return self.original_name
+
 
 
 class PrintJob(models.Model):
@@ -115,6 +119,10 @@ class Payment(models.Model):
     ]
     print_job = models.OneToOneField(PrintJob, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    color_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    paper_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
     transaction_id = models.CharField(max_length=255, blank=True, null=True)
     mpesa_receipt_number = models.CharField(max_length=100,blank=True,null=True)

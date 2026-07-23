@@ -9,6 +9,7 @@ djangorestframework==3.17.1
 djangorestframework_simplejwt==5.5.1
 idna==3.18
 PyJWT==2.13.0
+PyPDF2==3.0.1
 python-dotenv==1.2.2
 requests==2.34.2
 resend==2.34.0

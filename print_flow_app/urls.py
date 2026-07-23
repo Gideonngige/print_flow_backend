@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from .api_views.auth import *
+from .api_views import *
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -15,5 +16,10 @@ urlpatterns = [
     path('refresh_token', refresh_token, name='refresh_token'),
     path('delete_account/', delete_account, name='delete_account'),
     path('auth_check/', auth_check, name='auth_check'),
+
+    # documents
+    path("upload_document/", upload_document, name="upload_document"),
+    path("create_print_job/", create_print_job, name="create_print_job"),
+    
     
 ]
