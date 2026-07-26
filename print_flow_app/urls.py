@@ -3,6 +3,7 @@ from . import views
 from .api_views.auth import *
 from .api_views.documents import *
 from .api_views.payments import *
+from .api_views.printing import *
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -25,7 +26,13 @@ urlpatterns = [
     # payments
     path("pay_print_job/", pay_print_job, name="pay_print_job"),
     path("mpesa_callback/", mpesa_callback, name="mpesa_callback"),
-    path("print_job_status/<int:print_job_id>/", print_job_status, name="print_job_status",
-),
+    path("print_job_status/<int:print_job_id>/", print_job_status, name="print_job_status"),
+
+    # printing
+    path("agent/get_print_job/", get_print_job, name='get_print_job'),
+    path("agent/start_printing/", start_printing, name='start_printing'),
+    path("agent/complete_print_job/", complete_print_job, name='complete_print_job'),
+    path("agent/failed_print_job/", failed_print_job, name='failed_print_job'),
+    path("agent/printer_status/",printer_status, name='printer_status'),
     
 ]

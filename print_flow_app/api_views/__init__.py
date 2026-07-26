@@ -3,3 +3,4 @@ from .helper import *
 from .common_imports import *
 from .documents import *
 from .payments import *
+from .printing import *

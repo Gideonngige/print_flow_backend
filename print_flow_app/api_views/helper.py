@@ -1,5 +1,6 @@
 from .common_imports import *
 import os
+from rest_framework.response import Response
 
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
@@ -43,3 +44,25 @@ def normalize_phone(phone):
         return "254" + phone.lstrip("0")
 
     raise ValueError("Invalid phone number format")
+
+
+
+# veryify agent
+def verify_agent(request):
+    auth = request.headers.get("Authorization")
+
+    # print("=" * 50)
+    # print("Authorization Header:", auth)
+
+    token = ""
+
+    if auth:
+        token = auth.replace("Bearer ", "")
+
+    # print("Received Token :", repr(token))
+    # print("Expected Token :", repr(os.getenv("AGENT_API_KEY")))
+    # print("Match:", token == os.getenv("AGENT_API_KEY"))
+    # print("=" * 50)
+
+    return token == os.getenv("AGENT_API_KEY")
+
