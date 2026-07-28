@@ -21,3 +21,9 @@ from .business_messages import *
 from .customer_dashboard import *
 from .tenant import *
 from .customer_profile import *
+from .platform import *
+from .platform_tenants import *
+from .platform_plans import *
+from .platform_subscription import *
+from .platform_payments import *
+from .platform_users import *

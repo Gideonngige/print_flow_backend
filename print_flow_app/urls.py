@@ -23,6 +23,12 @@ from .api_views.business_messages import *
 from .api_views.customer_dashboard import *
 from .api_views.tenant import *
 from .api_views.customer_profile import *
+from .api_views.platform import *
+from .api_views.platform_tenants import *
+from .api_views.platform_plans import *
+from .api_views.platform_subscription import *
+from .api_views.platform_payments import *
+from .api_views.platform_users import *
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -134,6 +140,40 @@ urlpatterns = [
 
     # customer profile
     path("customer/profile/", customer_profile, name="customer_profile"),
+
+    # platform 
+    path("platform/dashboard/", platform_dashboard, name="platform_dashboard"),
+
+    # platform tenants
+    path("platform/tenants/", platform_tenants, name="platform_tenants"),
+    path("platform/tenants/<int:tenant_id>/status/", platform_update_tenant_status, name="platform_update_tenant_status"),
+    path("platform/tenants/<int:tenant_id>/", platform_tenant_detail, name="platform_tenant_detail"),
+    path("platform/tenants/<int:tenant_id>/update/", platform_update_tenant, name="platform_update_tenant"),
+
+    # platform plans
+    path("platform/plans/", platform_plans, name="platform_plans"),
+    path("platform/plans/<int:plan_id>/", platform_plan_detail, name="platform_plan_detail"),
+
+    # platform subscription
+    path("platform/subscriptions/", platform_subscriptions, name="platform_subscriptions"),
+    path("platform/subscriptions/<int:subscription_id>/", platform_update_subscription, name="platform_update_subscription"),
+    path("platform/subscriptions/<int:subscription_id>/extend/", platform_extend_subscription, name="platform_extend_subscription"),
+
+    # platform payments
+    path("platform/payments/", platform_subscription_payments, name="platform_subscription_payments"),
+    path("platform/payments/<int:payment_id>/", platform_subscription_payment_detail, name="platform_subscription_payment_detail"),
+    path("platform/payments/<int:payment_id>/update/", platform_update_subscription_payment, name="platform_update_subscription_payment"),
+
+    # platform users
+    path("platform/users/", platform_users, name="platform_users"),
+    path("platform/users/<int:user_id>/", platform_user_detail, name="platform_user_detail"),
+    path("platform/users/<int:user_id>/status/", platform_update_user_status, name="platform_update_user_status"),
+
+
+
+
+
+
 
     # dashboard
     path("user_dashboard/", user_dashboard, name='user_dashboard'),
