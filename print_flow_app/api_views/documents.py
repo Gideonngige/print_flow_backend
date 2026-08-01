@@ -208,3 +208,126 @@ def create_print_job(request):
             "status": payment.status,
         }
     }, status=201)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_documents(request):
+    try:
+        documents = (
+            Document.objects
+            .filter(user=request.user)
+            .prefetch_related(
+                Prefetch(
+                    "printjob_set",
+                    queryset=PrintJob.objects.order_by("-created_at"),
+                )
+            )
+            .order_by("-uploaded_at")
+        )
+
+        documents_data = []
+
+        for document in documents:
+            print_jobs = list(document.printjob_set.all())
+
+            latest_job = print_jobs[0] if print_jobs else None
+
+            # Use the latest print job status when one exists.
+            # Otherwise use the document status.
+            current_status = (
+                latest_job.status
+                if latest_job
+                else document.status
+            )
+
+            documents_data.append({
+                "id": document.id,
+                "name": document.original_name,
+                "pages": document.pages,
+                "size": document.size,
+                "mime_type": document.mime_type,
+                "status": current_status,
+                "document_status": document.status,
+                "url": document.cloudinary_url,
+                "uploaded_at": document.uploaded_at,
+                "latest_print_job": {
+                    "id": latest_job.id,
+                    "copies": latest_job.copies,
+                    "paper_size": latest_job.paper_size,
+                    "color": latest_job.color,
+                    "double_sided": latest_job.double_sided,
+                    "status": latest_job.status,
+                } if latest_job else None,
+            })
+
+        return Response({
+            "success": True,
+            "count": len(documents_data),
+            "documents": documents_data,
+        })
+
+    except Exception as error:
+        return Response({
+            "success": False,
+            "message": str(error),
+        }, status=500)
+
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_document(request, document_id):
+    try:
+        document = Document.objects.filter(
+            id=document_id,
+            user=request.user,
+        ).first()
+
+        if not document:
+            return Response({
+                "success": False,
+                "message": "Document not found.",
+            }, status=404)
+
+        active_job_exists = PrintJob.objects.filter(
+            document=document,
+            status__in=["paid", "queued", "printing"],
+        ).exists()
+
+        if active_job_exists:
+            return Response({
+                "success": False,
+                "message": (
+                    "This document cannot be deleted because it has "
+                    "an active print job."
+                ),
+            }, status=400)
+
+        # Remove the file from Cloudinary.
+        if document.cloudinary_public_id:
+            try:
+                cloudinary.uploader.destroy(
+                    document.cloudinary_public_id,
+                    resource_type="raw",
+                    invalidate=True,
+                )
+            except Exception as cloudinary_error:
+                print(
+                    "Cloudinary deletion error:",
+                    cloudinary_error,
+                )
+
+        document.delete()
+
+        return Response({
+            "success": True,
+            "message": "Document deleted successfully.",
+        })
+
+    except Exception as error:
+        return Response({
+            "success": False,
+            "message": str(error),
+        }, status=500)
