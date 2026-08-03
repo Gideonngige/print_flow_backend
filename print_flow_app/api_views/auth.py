@@ -164,8 +164,8 @@ def signin(request):
         if not user:
             return JsonResponse({"message": "Invalid credentials"}, status=401)
 
-        if not user.email_verified:
-            return JsonResponse({"message": "Verify your email first"}, status=403)
+        # if not user.email_verified:
+        #     return JsonResponse({"message": "Verify your email first"}, status=403)
 
         refresh = RefreshToken.for_user(user)
 
