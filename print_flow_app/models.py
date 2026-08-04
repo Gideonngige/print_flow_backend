@@ -133,3 +133,26 @@ class Payment(models.Model):
     def __str__(self):
         return f"Payment for Job #{self.print_job.id}"
 
+
+
+class Message(models.Model):
+    STATUS_CHOICES = [
+        ("unread", "Unread"),
+        ("read", "Read"),
+        ("replied", "Replied"),
+        ("closed", "Closed"),
+    ]
+
+    name = models.CharField(max_length=150)
+    email = models.EmailField()
+    phone_number = models.CharField(max_length=20, blank=True,null=True)
+    subject = models.CharField(max_length=255, blank=True, default="General Enquiry")
+    message = models.TextField()
+    status = models.CharField(max_length=20,choices=STATUS_CHOICES, default="unread",)
+    admin_notes = models.TextField(blank=True,null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    replied_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.subject}"

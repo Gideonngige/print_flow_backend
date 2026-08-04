@@ -77,7 +77,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from print_flow_app.models import Document, PrintJob, Payment
+from print_flow_app.models import Document, PrintJob, Payment, Message
 
 
 import cloudinary.uploader
@@ -103,4 +103,7 @@ from reportlab.pdfgen import canvas
 
 from print_flow_app.models import PrintJob, Payment
 
+
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 

@@ -6,6 +6,7 @@ from .api_views.payments import *
 from .api_views.printing import *
 from .api_views.dashboard import *
 from .api_views.admin import *
+from .api_views.messages import *
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -55,5 +56,12 @@ urlpatterns = [
     path("admin_print_jobs/<int:print_job_id>/retry/", retry_print_job, name="retry_print_job"),
     path("admin_payments/", admin_payments, name="admin_payments"),
     path("admin_documents/", admin_documents,name="admin_documents"),
+
+    # Contact messages
+    path("send_message/", send_message, name="send_message"),
+    path("admin_messages/", admin_messages, name="admin_messages"),
+    path("admin_messages/<int:message_id>/status/", update_message_status, name="update_message_status"),
+    path("admin_messages/<int:message_id>/delete/", delete_message, name="delete_message"),
+
     
 ]
