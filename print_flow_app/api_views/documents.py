@@ -93,6 +93,7 @@ def upload_document(request):
         }, status=201)
 
     except Exception as e:
+        print(f"Error: {e}")
 
         return JsonResponse({
             "success": False,

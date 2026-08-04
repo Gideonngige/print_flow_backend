@@ -69,10 +69,10 @@ class Document(models.Model):
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file = models.FileField(upload_to="documents/")
-    original_name = models.CharField(max_length=255)
-    cloudinary_public_id = models.CharField(max_length=255, blank=True)
+    original_name = models.CharField(max_length=500)
+    cloudinary_public_id = models.CharField(max_length=500, blank=True)
     cloudinary_url = models.URLField(blank=True)
-    mime_type = models.CharField(max_length=100, blank=True)
+    mime_type = models.CharField(max_length=500, blank=True)
     size = models.IntegerField()
     pages = models.IntegerField(default=1)
     status = models.CharField(max_length=20, choices=CHOICES, default="uploaded")
