@@ -9,6 +9,8 @@ djangorestframework==3.17.1
 djangorestframework_simplejwt==5.5.1
 idna==3.18
 pillow==12.3.0
+psycopg==3.3.4
+psycopg-binary==3.3.4
 PyJWT==2.13.0
 PyPDF2==3.0.1
 python-dotenv==1.2.2
