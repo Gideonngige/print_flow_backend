@@ -68,7 +68,7 @@ class Document(models.Model):
         ('printed', 'Printed'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.FileField(upload_to="documents/")
+    file = models.FileField(upload_to="documents/", blank=True, null=True, max_length=500)
     original_name = models.CharField(max_length=500)
     cloudinary_public_id = models.CharField(max_length=500, blank=True)
     cloudinary_url = models.URLField(blank=True)
