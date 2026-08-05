@@ -6,7 +6,7 @@ from .helper import *
 def send_test_email(request):
     to_email = request.data.get("email")
     print("Sending test email to:", to_email)
-    subject = "Test Email from Print Flow"
+    subject = "Test Email from JoePrint"
     html = "<h1>This is a test email from Print Flow</h1><p>If you received this, email sending works!</p>"
 
     try:
@@ -52,18 +52,18 @@ def signup(request):
             email_verified=False,
         )
 
-        link = f"http://192.168.100.12:8000/verify_email?token={token}"
+        link = f"https://print-flow-backend-ppm9.onrender.com/verify_email?token={token}"
 
         send_email(
             email,
-            "Verify Your Print Flow Account",
+            "Verify Your JoePrint Account",
             f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; color: #333;">
         
             <h2 style="color: #2563EB;">Welcome to Print Flow</h2>
 
             <p>
-            Thank you for registering with Print Flow. To complete your account setup,
+            Thank you for registering with JoePrint. To complete your account setup,
             please verify your email address by clicking the button below.
             </p>
 
@@ -97,7 +97,7 @@ def signup(request):
             </p>
 
             <p style="font-size: 14px; color: #777;">
-            Print Flow Team
+            JoePrint Team
             </p>
             </div>
             """
@@ -200,11 +200,11 @@ def request_reset(request):
     user.reset_token = token
     user.save()
 
-    link = f"http://192.168.100.12:8000/reset_password?token={token}"
+    link = f"https://print-flow-backend-ppm9.onrender.com/reset_password?token={token}"
 
     send_email(
         email,
-       "Reset Your Print Flow Password",
+       "Reset Your JoePrint Password",
        f"""
        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; color: #333;">
 
@@ -252,7 +252,7 @@ def request_reset(request):
           </p>
 
           <p style="font-size: 14px; color: #777;">
-            Print Flow Team
+            JoePrint Team
           </p>
 
           </div>
