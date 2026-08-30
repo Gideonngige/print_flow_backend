@@ -33,9 +33,6 @@ from django.utils import timezone
 
 import secrets
 
-# Local imports
-from print_flow_app.models import User, Document, PrintJob, Payment
-
 
 # Logging
 import logging
@@ -77,7 +74,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from print_flow_app.models import Document, PrintJob, Payment, Message
+from print_flow_app.models import Plan, Tenant, Subscription, SubscriptionPayment, User, Document, PrintJob, Payment, Message
 
 
 import cloudinary.uploader
