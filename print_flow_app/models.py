@@ -626,6 +626,222 @@ class User(AbstractUser):
 
 
 # ============================================================
+# 12. DARAJA / M-PESA CONFIGURATION
+# ============================================================
+
+class DarajaConfiguration(models.Model):
+
+    ENVIRONMENT_CHOICES = [
+        ("sandbox", "Sandbox"),
+        ("production", "Production"),
+    ]
+
+    tenant = models.OneToOneField(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="daraja_configuration"
+    )
+
+    # --------------------------------------------------------
+    # Daraja Environment
+    # --------------------------------------------------------
+
+    environment = models.CharField(
+        max_length=20,
+        choices=ENVIRONMENT_CHOICES,
+        default="sandbox"
+    )
+
+    # --------------------------------------------------------
+    # Safaricom Daraja Credentials
+    # --------------------------------------------------------
+
+    consumer_key = models.CharField(
+        max_length=255
+    )
+
+    consumer_secret = models.CharField(
+        max_length=255
+    )
+
+    passkey = models.CharField(
+        max_length=255
+    )
+
+    short_code = models.CharField(
+        max_length=50
+    )
+
+    # --------------------------------------------------------
+    # Callback Configuration
+    # --------------------------------------------------------
+
+    callback_url = models.URLField(
+        blank=True,
+        null=True
+    )
+
+    # --------------------------------------------------------
+    # Status
+    # --------------------------------------------------------
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    is_verified = models.BooleanField(
+        default=False
+    )
+
+    last_verified_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    # --------------------------------------------------------
+    # Timestamps
+    # --------------------------------------------------------
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+        return (
+            f"Daraja Configuration - "
+            f"{self.tenant.name}"
+        )
+
+
+
+# ============================================================
+# 11. PRICING
+# ============================================================
+
+class Pricing(models.Model):
+
+    PAPER_SIZES = [
+        ("A4", "A4"),
+        ("A3", "A3"),
+        ("A5", "A5"),
+        ("LETTER", "Letter"),
+        ("LEGAL", "Legal"),
+    ]
+
+    PRINT_TYPES = [
+        ("black_white", "Black & White"),
+        ("color", "Color"),
+    ]
+
+    SIDES = [
+        ("single", "Single-Sided"),
+        ("double", "Double-Sided"),
+    ]
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="pricing"
+    )
+
+    # --------------------------------------------------------
+    # Paper
+    # --------------------------------------------------------
+
+    paper_size = models.CharField(
+        max_length=20,
+        choices=PAPER_SIZES,
+        default="A4"
+    )
+
+    # --------------------------------------------------------
+    # Printing type
+    # --------------------------------------------------------
+
+    print_type = models.CharField(
+        max_length=20,
+        choices=PRINT_TYPES,
+        default="black_white"
+    )
+
+    # --------------------------------------------------------
+    # Single / Double sided
+    # --------------------------------------------------------
+
+    sides = models.CharField(
+        max_length=20,
+        choices=SIDES,
+        default="single"
+    )
+
+    # --------------------------------------------------------
+    # Price
+    # --------------------------------------------------------
+
+    price_per_page = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    # --------------------------------------------------------
+    # Optional minimum charge
+    # --------------------------------------------------------
+
+    minimum_charge = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    # --------------------------------------------------------
+    # Status
+    # --------------------------------------------------------
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+
+        ordering = ["paper_size", "print_type", "sides"]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "tenant",
+                    "paper_size",
+                    "print_type",
+                    "sides",
+                ],
+                name="unique_tenant_print_pricing"
+            )
+        ]
+
+    def __str__(self):
+
+        return (
+            f"{self.tenant.name} - "
+            f"{self.paper_size} - "
+            f"{self.print_type} - "
+            f"{self.sides} - "
+            f"KES {self.price_per_page}"
+        )
+
+
+
+# ============================================================
 # 3. DOCUMENT
 # ============================================================
 
@@ -692,6 +908,133 @@ class Document(models.Model):
 
 
 # ============================================================
+# 10. PRINTER
+# ============================================================
+
+class Printer(models.Model):
+
+    STATUS_CHOICES = [
+        ("online", "Online"),
+        ("offline", "Offline"),
+        ("unknown", "Unknown"),
+        ("disabled", "Disabled"),
+    ]
+
+    CONNECTION_TYPES = [
+        ("usb", "USB"),
+        ("network", "Network"),
+        ("wifi", "Wi-Fi"),
+        ("ethernet", "Ethernet"),
+    ]
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="printers"
+    )
+
+    # --------------------------------------------------------
+    # Printer Information
+    # --------------------------------------------------------
+
+    name = models.CharField(
+        max_length=255
+    )
+
+    # Name reported by CUPS / Print Agent
+    system_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+    manufacturer = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    model = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+    # --------------------------------------------------------
+    # Connection Information
+    # --------------------------------------------------------
+
+    connection_type = models.CharField(
+        max_length=20,
+        choices=CONNECTION_TYPES,
+        default="network"
+    )
+
+    # Network printer IP address
+    ip_address = models.GenericIPAddressField(
+        blank=True,
+        null=True
+    )
+
+    # Port, e.g. 631, 9100
+    port = models.PositiveIntegerField(
+        blank=True,
+        null=True
+    )
+
+    # --------------------------------------------------------
+    # Print Agent Information
+    # --------------------------------------------------------
+
+    # Unique identifier generated by the PrintFlow Agent
+    agent_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True
+    )
+
+    # Last time the Print Agent communicated with PrintFlow
+    last_seen = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
+    # --------------------------------------------------------
+    # Printer Status
+    # --------------------------------------------------------
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="unknown"
+    )
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    is_default = models.BooleanField(
+        default=False
+    )
+
+    # --------------------------------------------------------
+    # Timestamps
+    # --------------------------------------------------------
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+        return f"{self.name} - {self.tenant.name}"
+
+
+# ============================================================
 # 4. PRINT JOB
 # ============================================================
 
@@ -723,6 +1066,14 @@ class PrintJob(models.Model):
         Document,
         on_delete=models.CASCADE,
         related_name="print_jobs"
+    )
+
+    printer = models.ForeignKey(
+        Printer,
+        on_delete=models.SET_NULL,
+        related_name="print_jobs",
+        null=True,
+        blank=True
     )
 
     copies = models.PositiveIntegerField(
