@@ -529,34 +529,29 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
 
     ROLE_CHOICES = [
-
-        # PrintFlow owner/platform administrator
         (
             "platform_admin",
             "Platform Admin"
         ),
-
-        # Business owner
         (
             "business_admin",
             "Business Admin"
         ),
-
-        # Business employee
         (
             "staff",
             "Staff"
         ),
-
-        # Customer using the printing service
         (
             "customer",
             "Customer"
         ),
     ]
 
-    # Every user except platform admins belongs to
-    # a particular business.
+    # Business admins/staff belong directly
+    # to one tenant.
+    #
+    # Customers should normally leave this NULL
+    # and use CustomerTenantMembership instead.
     tenant = models.ForeignKey(
         Tenant,
         on_delete=models.CASCADE,
@@ -625,15 +620,93 @@ class User(AbstractUser):
 
     USERNAME_FIELD = "username"
 
-    REQUIRED_FIELDS = ["email"]
+    REQUIRED_FIELDS = [
+        "email"
+    ]
 
     objects = UserManager()
 
     def __str__(self):
-
         return (
             f"{self.username} "
             f"({self.role})"
+        )
+
+
+class CustomerTenantMembership(models.Model):
+
+    STATUS_CHOICES = [
+        (
+            "active",
+            "Active"
+        ),
+        (
+            "blocked",
+            "Blocked"
+        ),
+        (
+            "inactive",
+            "Inactive"
+        ),
+    ]
+
+    customer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="tenant_memberships"
+    )
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="customer_memberships"
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="active"
+    )
+
+    joined_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "customer",
+                    "tenant"
+                ],
+                name="unique_customer_tenant_membership"
+            )
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "tenant",
+                    "status"
+                ]
+            ),
+
+            models.Index(
+                fields=[
+                    "customer",
+                    "status"
+                ]
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.customer.email} - "
+            f"{self.tenant.name}"
         )
 
 

@@ -2,304 +2,1079 @@ from .common_imports import *
 from .helper import *
 
 
+# ============================================================
+# GET ACTIVE CUSTOMER TENANT
+# ============================================================
 
+def get_active_customer_tenant(request):
+    user = request.user
 
-# =========================================
-# GET ACCESS TOKEN
-# =========================================
+    if user.role != "customer":
+        return None, Response({
+            "success": False,
+            "message":
+                "Only customer accounts can access this resource."
+        }, status=403)
 
-def get_access_token():
-    try:
-        response = requests.get(
-            os.environ.get("ACCESS_TOKEN_URL"),
-            auth=(os.environ.get("MPESA_CONSUMER_KEY"), os.environ.get("MPESA_CONSUMER_SECRET"))
+    tenant_slug = (
+        request.headers
+        .get(
+            "X-Tenant-Slug",
+            ""
         )
+        .strip()
+    )
+
+    if not tenant_slug:
+        return None, Response({
+            "success": False,
+            "message":
+                "Printing business could not be identified."
+        }, status=400)
+
+    tenant = (
+        Tenant.objects
+        .filter(
+            slug=tenant_slug,
+            is_active=True
+        )
+        .first()
+    )
+
+    if not tenant:
+        return None, Response({
+            "success": False,
+            "message":
+                "Printing business not found."
+        }, status=404)
+
+    membership = (
+        CustomerTenantMembership.objects
+        .filter(
+            customer=user,
+            tenant=tenant
+        )
+        .first()
+    )
+
+    if not membership:
+        return None, Response({
+            "success": False,
+            "message":
+                f"Your account is not connected to {tenant.name}."
+        }, status=403)
+
+    if membership.status == "blocked":
+        return None, Response({
+            "success": False,
+            "message":
+                f"Your account has been blocked from using {tenant.name}."
+        }, status=403)
+
+    if membership.status != "active":
+        return None, Response({
+            "success": False,
+            "message":
+                f"Your access to {tenant.name} is currently inactive."
+        }, status=403)
+
+    return tenant, None
+
+
+# ============================================================
+# GET DARAJA CONFIGURATION
+# ============================================================
+
+def get_daraja_configuration(tenant):
+    config = (
+        DarajaConfiguration.objects
+        .filter(
+            tenant=tenant,
+            is_active=True
+        )
+        .first()
+    )
+
+    return config
+
+
+# ============================================================
+# GET DARAJA URLS
+# ============================================================
+
+def get_daraja_urls(environment):
+    if environment == "production":
+        return {
+            "access_token_url":
+                "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+
+            "stk_push_url":
+                "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+        }
+
+    return {
+        "access_token_url":
+            "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+
+        "stk_push_url":
+            "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+    }
+
+
+# ============================================================
+# GET ACCESS TOKEN
+# ============================================================
+
+def get_access_token(daraja_config):
+    try:
+        urls = get_daraja_urls(
+            daraja_config.environment
+        )
+
+        response = requests.get(
+            urls["access_token_url"],
+            auth=(
+                daraja_config.consumer_key,
+                daraja_config.consumer_secret,
+            ),
+            timeout=30,
+        )
+
+        response.raise_for_status()
 
         data = response.json()
 
-        return data.get("access_token")
+        access_token = data.get(
+            "access_token"
+        )
 
-    except Exception as e:
-        print("ACCESS TOKEN ERROR:", e)
+        if not access_token:
+            return None
+
+        return access_token
+
+    except requests.RequestException as error:
+        print(
+            "DARAJA ACCESS TOKEN ERROR:",
+            error
+        )
+
+        return None
+
+    except Exception as error:
+        print(
+            "ACCESS TOKEN ERROR:",
+            error
+        )
+
         return None
 
 
-# =========================================
-# STK PUSH FUNCTION
-# CUSTOMER PAYS FOR EVENT
-# =========================================
-def lipa_na_mpesa(phone_number, amount, print_job_id):
+# ============================================================
+# NORMALIZE PHONE NUMBER
+# ============================================================
 
-    amount = int(amount)
+def normalize_mpesa_phone(phone_number):
+    if not phone_number:
+        return None
 
-    access_token = get_access_token()
-
-    if not access_token:
-        return {
-            "success": False,
-            "message": "Failed to get access token"
-        }
-
-    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-    password = base64.b64encode(
-        f"{os.environ.get('MPESA_SHORTCODE')}{os.environ.get('MPESA_PASSKEY')}{timestamp}".encode()
-    ).decode()
-
-    phone_number = normalize_phone(phone_number)
-
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-
-    payload = {
-        "BusinessShortCode": os.environ.get("MPESA_SHORTCODE"),
-        "Password": password,
-        "Timestamp": timestamp,
-        "TransactionType": "CustomerPayBillOnline",
-        "Amount": amount,
-        "PartyA": phone_number,
-        "PartyB": os.environ.get("MPESA_SHORTCODE"),
-        "PhoneNumber": phone_number,
-        "CallBackURL": os.environ.get("MPESA_CALLBACK_URL"),
-
-        "AccountReference": f"PRINT-{print_job_id}",
-        "TransactionDesc": "Document Printing Payment"
-    }
-
-    response = requests.post(
-        os.environ.get("STK_PUSH_URL"),
-        json=payload,
-        headers=headers
+    phone = (
+        str(phone_number)
+        .strip()
+        .replace(" ", "")
+        .replace("-", "")
     )
 
-    return response.json()
+    if phone.startswith("+254"):
+        phone = (
+            "254" +
+            phone[4:]
+        )
+
+    elif phone.startswith("0"):
+        phone = (
+            "254" +
+            phone[1:]
+        )
+
+    elif phone.startswith("7"):
+        phone = (
+            "254" +
+            phone
+        )
+
+    elif phone.startswith("1"):
+        phone = (
+            "254" +
+            phone
+        )
+
+    if not phone.startswith("254"):
+        return None
+
+    if len(phone) != 12:
+        return None
+
+    if not phone.isdigit():
+        return None
+
+    return phone
 
 
-# pay print job
+# ============================================================
+# STK PUSH
+# ============================================================
+
+def lipa_na_mpesa(
+    daraja_config,
+    phone_number,
+    amount,
+    print_job_id
+):
+    try:
+        access_token = (
+            get_access_token(
+                daraja_config
+            )
+        )
+
+        if not access_token:
+            return {
+                "success": False,
+                "message":
+                    "Failed to get M-Pesa access token."
+            }
+
+        phone_number = (
+            normalize_mpesa_phone(
+                phone_number
+            )
+        )
+
+        if not phone_number:
+            return {
+                "success": False,
+                "message":
+                    "Invalid M-Pesa phone number."
+            }
+
+        timestamp = (
+            datetime.datetime
+            .now()
+            .strftime(
+                "%Y%m%d%H%M%S"
+            )
+        )
+
+        shortcode = str(
+            daraja_config.short_code
+        )
+
+        password_string = (
+            f"{shortcode}"
+            f"{daraja_config.passkey}"
+            f"{timestamp}"
+        )
+
+        password = (
+            base64.b64encode(
+                password_string.encode()
+            )
+            .decode()
+        )
+
+        urls = get_daraja_urls(
+            daraja_config.environment
+        )
+
+        headers = {
+            "Authorization":
+                f"Bearer {access_token}",
+
+            "Content-Type":
+                "application/json",
+        }
+
+        payload = {
+            "BusinessShortCode":
+                shortcode,
+
+            "Password":
+                password,
+
+            "Timestamp":
+                timestamp,
+
+            "TransactionType":
+                "CustomerPayBillOnline",
+
+            "Amount":
+                int(
+                    Decimal(amount)
+                ),
+
+            "PartyA":
+                phone_number,
+
+            "PartyB":
+                shortcode,
+
+            "PhoneNumber":
+                phone_number,
+
+            "CallBackURL":
+                daraja_config.callback_url,
+
+            "AccountReference":
+                f"PRINT-{print_job_id}",
+
+            "TransactionDesc":
+                "Document Printing Payment",
+        }
+
+        response = requests.post(
+            urls["stk_push_url"],
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+
+        try:
+            response_data = (
+                response.json()
+            )
+
+        except ValueError:
+            return {
+                "success": False,
+                "message":
+                    "Invalid response from M-Pesa."
+            }
+
+        if not response.ok:
+            return {
+                "success": False,
+
+                "message":
+                    response_data.get(
+                        "errorMessage"
+                    )
+                    or response_data.get(
+                        "ResponseDescription"
+                    )
+                    or "M-Pesa request failed.",
+
+                "mpesa":
+                    response_data,
+            }
+
+        return {
+            "success": True,
+            "mpesa": response_data,
+        }
+
+    except Exception as error:
+        print(
+            "STK PUSH ERROR:",
+            error
+        )
+
+        return {
+            "success": False,
+            "message":
+                "Unable to initiate M-Pesa payment."
+        }
+
+
+# ============================================================
+# PAY PRINT JOB
+# ============================================================
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def pay_print_job(request):
+    tenant, error_response = (
+        get_active_customer_tenant(
+            request
+        )
+    )
+
+    if error_response:
+        return error_response
 
     try:
+        print_job_id = (
+            request.data.get(
+                "print_job_id"
+            )
+        )
 
-        print_job_id = request.data.get("print_job_id")
-        phone_number = request.data.get("phone_number")
+        phone_number = (
+            request.data.get(
+                "phone_number"
+            )
+        )
 
-        print_job = PrintJob.objects.filter(
-            id=print_job_id,
-            user=request.user
-        ).first()
+        if not print_job_id:
+            return Response({
+                "success": False,
+                "message":
+                    "Print job ID is required."
+            }, status=400)
+
+        if not phone_number:
+            return Response({
+                "success": False,
+                "message":
+                    "M-Pesa phone number is required."
+            }, status=400)
+
+        # ----------------------------------------------------
+        # Print job
+        # ----------------------------------------------------
+
+        print_job = (
+            PrintJob.objects
+            .filter(
+                id=print_job_id,
+                tenant=tenant,
+                user=request.user
+            )
+            .first()
+        )
 
         if not print_job:
             return Response({
                 "success": False,
-                "message": "Print Job not found."
+                "message":
+                    "Print job not found."
             }, status=404)
 
-        payment = Payment.objects.filter(
-            print_job=print_job
-        ).first()
+        # ----------------------------------------------------
+        # Prevent payment on completed/cancelled jobs
+        # ----------------------------------------------------
+
+        if print_job.status in [
+            "queued",
+            "printing",
+            "printed",
+        ]:
+            return Response({
+                "success": False,
+                "message":
+                    "This print job has already been paid for."
+            }, status=400)
+
+        if print_job.status == "cancelled":
+            return Response({
+                "success": False,
+                "message":
+                    "This print job has been cancelled."
+            }, status=400)
+
+        # ----------------------------------------------------
+        # Payment
+        # ----------------------------------------------------
+
+        payment = (
+            Payment.objects
+            .filter(
+                tenant=tenant,
+                user=request.user,
+                print_job=print_job
+            )
+            .first()
+        )
 
         if not payment:
             return Response({
                 "success": False,
-                "message": "Payment not found."
+                "message":
+                    "Payment record not found."
             }, status=404)
 
-        stk_response = lipa_na_mpesa(
-            phone_number=phone_number,
-            amount=payment.amount,
-            print_job_id=print_job.id
+        if payment.status == "paid":
+            return Response({
+                "success": False,
+                "message":
+                    "This print job has already been paid."
+            }, status=400)
+
+        # ----------------------------------------------------
+        # Daraja configuration
+        # ----------------------------------------------------
+
+        daraja_config = (
+            get_daraja_configuration(
+                tenant
+            )
         )
 
-        checkout_request_id = stk_response.get(
-            "CheckoutRequestID"
+        if not daraja_config:
+            return Response({
+                "success": False,
+                "message":
+                    "M-Pesa has not been configured by this printing business."
+            }, status=400)
+
+        if not daraja_config.callback_url:
+            return Response({
+                "success": False,
+                "message":
+                    "The business M-Pesa callback URL is not configured."
+            }, status=400)
+
+        # ----------------------------------------------------
+        # Initiate STK push
+        # ----------------------------------------------------
+
+        stk_result = (
+            lipa_na_mpesa(
+                daraja_config=
+                    daraja_config,
+
+                phone_number=
+                    phone_number,
+
+                amount=
+                    payment.amount,
+
+                print_job_id=
+                    print_job.id
+            )
         )
 
-        payment.checkout_request_id = checkout_request_id
-        payment.status = "pending"
-        payment.save()
+        if not stk_result.get(
+            "success"
+        ):
+            return Response({
+                "success": False,
+
+                "message":
+                    stk_result.get(
+                        "message",
+                        "Unable to initiate payment."
+                    ),
+
+                "mpesa":
+                    stk_result.get(
+                        "mpesa"
+                    )
+
+            }, status=400)
+
+        stk_response = (
+            stk_result["mpesa"]
+        )
+
+        checkout_request_id = (
+            stk_response.get(
+                "CheckoutRequestID"
+            )
+        )
+
+        merchant_request_id = (
+            stk_response.get(
+                "MerchantRequestID"
+            )
+        )
+
+        if not checkout_request_id:
+            return Response({
+                "success": False,
+                "message":
+                    stk_response.get(
+                        "ResponseDescription"
+                    )
+                    or "M-Pesa did not return a checkout request ID."
+            }, status=400)
+
+        # ----------------------------------------------------
+        # Save request
+        # ----------------------------------------------------
+
+        payment.checkout_request_id = (
+            checkout_request_id
+        )
+
+        payment.status = (
+            "pending"
+        )
+
+        payment.save(
+            update_fields=[
+                "checkout_request_id",
+                "status",
+                "updated_at",
+            ]
+        )
 
         return Response({
-
             "success": True,
-            "message": "STK Push sent successfully.",
+
+            "message":
+                "M-Pesa payment request sent. "
+                "Check your phone and enter your PIN.",
 
             "payment": {
-                "id": payment.id,
-                "amount": payment.amount,
-                "status": payment.status,
-                "checkout_request_id": checkout_request_id
+                "id":
+                    payment.id,
+
+                "amount":
+                    payment.amount,
+
+                "status":
+                    payment.status,
+
+                "checkout_request_id":
+                    payment.checkout_request_id,
             },
 
-            "mpesa": stk_response
+            "mpesa": {
+                "merchant_request_id":
+                    merchant_request_id,
+
+                "checkout_request_id":
+                    checkout_request_id,
+
+                "response_code":
+                    stk_response.get(
+                        "ResponseCode"
+                    ),
+
+                "response_description":
+                    stk_response.get(
+                        "ResponseDescription"
+                    ),
+
+                "customer_message":
+                    stk_response.get(
+                        "CustomerMessage"
+                    ),
+            }
 
         })
 
-    except Exception as e:
+    except Exception as error:
+        print(
+            "PAY PRINT JOB ERROR:",
+            error
+        )
 
         return Response({
             "success": False,
-            "message": str(e)
+            "message":
+                "Unable to initiate payment."
         }, status=500)
 
 
+# ============================================================
+# M-PESA CALLBACK
+# ============================================================
 
-
-# mpesa callback
 @csrf_exempt
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def mpesa_callback(request):
-
     try:
+        body = request.data
 
-        body = json.loads(request.body)
-
-        stk = body.get(
-            "Body",
-            {}
-        ).get(
-            "stkCallback",
-            {}
+        stk = (
+            body
+            .get(
+                "Body",
+                {}
+            )
+            .get(
+                "stkCallback",
+                {}
+            )
         )
 
-        result_code = stk.get("ResultCode")
-
-        checkout_request_id = stk.get(
-            "CheckoutRequestID"
+        result_code = (
+            stk.get(
+                "ResultCode"
+            )
         )
 
-        payment = Payment.objects.filter(
-            checkout_request_id=checkout_request_id
-        ).first()
+        result_description = (
+            stk.get(
+                "ResultDesc"
+            )
+        )
 
-        if not payment:
+        checkout_request_id = (
+            stk.get(
+                "CheckoutRequestID"
+            )
+        )
 
-            return JsonResponse({
+        merchant_request_id = (
+            stk.get(
+                "MerchantRequestID"
+            )
+        )
+
+        if not checkout_request_id:
+            return Response({
                 "ResultCode": 1,
-                "ResultDesc": "Payment not found"
+                "ResultDesc":
+                    "CheckoutRequestID missing"
             })
 
+        payment = (
+            Payment.objects
+            .select_related(
+                "print_job",
+                "print_job__document",
+                "tenant",
+                "user",
+            )
+            .filter(
+                checkout_request_id=
+                    checkout_request_id
+            )
+            .first()
+        )
+
+        if not payment:
+            print(
+                "M-PESA CALLBACK PAYMENT NOT FOUND:",
+                checkout_request_id
+            )
+
+            return Response({
+                "ResultCode": 1,
+                "ResultDesc":
+                    "Payment not found"
+            })
+
+        # ----------------------------------------------------
+        # Idempotency
+        # ----------------------------------------------------
+
+        if payment.status == "paid":
+            return Response({
+                "ResultCode": 0,
+                "ResultDesc":
+                    "Already processed"
+            })
+
+        # ----------------------------------------------------
+        # Successful payment
+        # ----------------------------------------------------
+
         if result_code == 0:
+            metadata_items = (
+                stk
+                .get(
+                    "CallbackMetadata",
+                    {}
+                )
+                .get(
+                    "Item",
+                    []
+                )
+            )
 
-            metadata = stk.get(
-                "CallbackMetadata",
-                {}
-            ).get("Item", [])
+            metadata = {}
 
-            meta = {
-                item["Name"]: item.get("Value")
-                for item in metadata
-            }
+            for item in metadata_items:
+                name = item.get(
+                    "Name"
+                )
+
+                if name:
+                    metadata[name] = (
+                        item.get(
+                            "Value"
+                        )
+                    )
 
             payment.status = "paid"
-            payment.transaction_id = meta.get("TransactionID")
-            payment.mpesa_receipt_number = meta.get("MpesaReceiptNumber")
-            payment.paid_at = timezone.now()
 
-            payment.save()
+            payment.mpesa_receipt_number = (
+                metadata.get(
+                    "MpesaReceiptNumber"
+                )
+            )
 
-            # Queue for printing
+            # Daraja normally gives
+            # MpesaReceiptNumber, not TransactionID.
+            payment.transaction_id = (
+                metadata.get(
+                    "MpesaReceiptNumber"
+                )
+            )
 
-            print_job = payment.print_job
+            payment.paid_at = (
+                timezone.now()
+            )
 
-            print_job.status = "queued"
+            payment.save(
+                update_fields=[
+                    "status",
+                    "transaction_id",
+                    "mpesa_receipt_number",
+                    "paid_at",
+                    "updated_at",
+                ]
+            )
 
-            print_job.save()
+            # ------------------------------------------------
+            # Queue print job
+            # ------------------------------------------------
 
-            document = print_job.document
+            print_job = (
+                payment.print_job
+            )
 
-            document.status = "pending"
+            print_job.status = (
+                "queued"
+            )
 
-            document.save()
+            print_job.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
+
+            # ------------------------------------------------
+            # Update document
+            # ------------------------------------------------
+
+            document = (
+                print_job.document
+            )
+
+            document.status = (
+                "pending"
+            )
+
+            document.save(
+                update_fields=[
+                    "status"
+                ]
+            )
+
+            print(
+                "M-PESA PAYMENT SUCCESS:",
+                {
+                    "payment":
+                        payment.id,
+
+                    "tenant":
+                        payment.tenant_id,
+
+                    "print_job":
+                        print_job.id,
+
+                    "receipt":
+                        payment.mpesa_receipt_number,
+                }
+            )
+
+        # ----------------------------------------------------
+        # Failed / cancelled STK
+        # ----------------------------------------------------
 
         else:
+            payment.status = (
+                "failed"
+            )
 
-            payment.status = "failed"
-            payment.save()
+            payment.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
 
-            payment.print_job.status = "failed"
-            payment.print_job.save()
+            print_job = (
+                payment.print_job
+            )
 
-        return JsonResponse({
+            # Keep the print job pending so the
+            # customer can retry payment.
+            print_job.status = (
+                "pending"
+            )
+
+            print_job.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
+
+            print(
+                "M-PESA PAYMENT FAILED:",
+                {
+                    "payment":
+                        payment.id,
+
+                    "result_code":
+                        result_code,
+
+                    "result_description":
+                        result_description,
+
+                    "merchant_request_id":
+                        merchant_request_id,
+                }
+            )
+
+        return Response({
             "ResultCode": 0,
-            "ResultDesc": "Accepted"
+            "ResultDesc":
+                "Accepted"
         })
 
-    except Exception as e:
+    except Exception as error:
+        print(
+            "M-PESA CALLBACK ERROR:",
+            error
+        )
 
-        print(e)
-
-        return JsonResponse({
+        return Response({
             "ResultCode": 1,
-            "ResultDesc": "Server Error"
+            "ResultDesc":
+                "Server Error"
         })
 
 
+# ============================================================
+# CHECK PRINT JOB STATUS
+# ============================================================
 
-
-
-# check print job status
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def print_job_status(request, print_job_id):
+def print_job_status(
+    request,
+    print_job_id
+):
+    tenant, error_response = (
+        get_active_customer_tenant(
+            request
+        )
+    )
+
+    if error_response:
+        return error_response
 
     try:
-        print_job = PrintJob.objects.select_related(
-            "document",
-            "payment"
-        ).get(
-            id=print_job_id,
-            user=request.user
+        print_job = (
+            PrintJob.objects
+            .select_related(
+                "document",
+                "payment",
+            )
+            .get(
+                id=print_job_id,
+                tenant=tenant,
+                user=request.user
+            )
         )
 
     except PrintJob.DoesNotExist:
-        return Response(
-            {
-                "message": "Print job not found"
-            },
-            status=404
-        )
+        return Response({
+            "success": False,
+            "message":
+                "Print job not found."
+        }, status=404)
 
-    payment = Payment.objects.filter(
-        print_job=print_job
-    ).first()
+    payment = getattr(
+        print_job,
+        "payment",
+        None
+    )
 
     return Response({
-
         "success": True,
 
         "print_job": {
-            "id": print_job.id,
-            "status": print_job.status,
-            "copies": print_job.copies,
-            "paper_size": print_job.paper_size,
-            "color": print_job.color,
-            "double_sided": print_job.double_sided,
-            "created_at": print_job.created_at,
+            "id":
+                print_job.id,
+
+            "status":
+                print_job.status,
+
+            "copies":
+                print_job.copies,
+
+            "paper_size":
+                print_job.paper_size,
+
+            "color":
+                print_job.color,
+
+            "double_sided":
+                print_job.double_sided,
+
+            "created_at":
+                print_job.created_at,
+
+            "updated_at":
+                print_job.updated_at,
         },
 
         "document": {
-            "id": print_job.document.id,
-            "name": print_job.document.original_name,
-            "pages": print_job.document.pages,
-            "status": print_job.document.status,
+            "id":
+                print_job.document.id,
+
+            "name":
+                print_job.document.original_name,
+
+            "pages":
+                print_job.document.pages,
+
+            "status":
+                print_job.document.status,
+
+            "url":
+                print_job.document.cloudinary_url,
         },
 
         "payment": {
-            "status": payment.status if payment else "pending",
-            "amount": str(payment.amount) if payment else "0",
-            "receipt_number": (
+            "id":
+                payment.id
+                if payment
+                else None,
+
+            "status":
+                payment.status
+                if payment
+                else "pending",
+
+            "amount":
+                str(
+                    payment.amount
+                )
+                if payment
+                else "0.00",
+
+            "payment_method":
+                payment.payment_method
+                if payment
+                else None,
+
+            "receipt_number":
                 payment.mpesa_receipt_number
                 if payment
-                else None
-            ),
-            "paid_at": (
-                payment.paid_at
-                if payment and payment.status == "paid"
-                else None
-            ),
-        }
+                else None,
 
+            "checkout_request_id":
+                payment.checkout_request_id
+                if payment
+                else None,
+
+            "paid_at":
+                payment.paid_at
+                if (
+                    payment and
+                    payment.status == "paid"
+                )
+                else None,
+        }
     })

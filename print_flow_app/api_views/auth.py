@@ -1442,3 +1442,550 @@ def auth_check(request):
                 subscription
             ),
     })
+
+
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def customer_signup(request):
+
+    tenant_slug = (
+        request.data
+        .get(
+            "tenant_slug",
+            ""
+        )
+        .strip()
+    )
+
+    full_name = (
+        request.data
+        .get(
+            "full_name",
+            ""
+        )
+        .strip()
+    )
+
+    email = (
+        request.data
+        .get(
+            "email",
+            ""
+        )
+        .strip()
+        .lower()
+    )
+
+    phone_number = (
+        request.data
+        .get(
+            "phone_number",
+            ""
+        )
+        .strip()
+    )
+
+    password = request.data.get(
+        "password"
+    )
+
+
+    if not tenant_slug:
+
+        return Response({
+            "message":
+                "Printing business is required."
+        }, status=400)
+
+
+    tenant = Tenant.objects.filter(
+        slug=tenant_slug,
+        is_active=True
+    ).first()
+
+
+    if not tenant:
+
+        return Response({
+            "message":
+                "Printing business not found."
+        }, status=404)
+
+
+    if not all([
+        full_name,
+        email,
+        phone_number,
+        password
+    ]):
+
+        return Response({
+            "message":
+                "All fields are required."
+        }, status=400)
+
+
+    if len(password) < 8:
+
+        return Response({
+            "message":
+                "Password must be at least "
+                "8 characters."
+        }, status=400)
+
+
+    with transaction.atomic():
+
+        # Check for existing PrintFlow account
+        customer = User.objects.filter(
+            email__iexact=email
+        ).first()
+
+
+        # ================================================
+        # EXISTING ACCOUNT
+        # ================================================
+
+        if customer:
+
+            if customer.role != "customer":
+
+                return Response({
+                    "message":
+                        "This email belongs to a "
+                        "non-customer PrintFlow account."
+                }, status=400)
+
+
+            if not customer.check_password(
+                password
+            ):
+
+                return Response({
+                    "message":
+                        "An account with this email "
+                        "already exists. Enter your "
+                        "existing PrintFlow password "
+                        "to join this printing business."
+                }, status=400)
+
+
+            membership, created = (
+                CustomerTenantMembership
+                .objects
+                .get_or_create(
+                    customer=customer,
+                    tenant=tenant,
+                    defaults={
+                        "status":
+                            "active"
+                    }
+                )
+            )
+
+
+            if not created:
+
+                if membership.status == "blocked":
+
+                    return Response({
+                        "message":
+                            "Your account is blocked "
+                            "from using this printing business."
+                    }, status=403)
+
+
+                return Response({
+                    "message":
+                        "You already have an account "
+                        "with this printing business."
+                }, status=400)
+
+
+            return Response({
+                "success": True,
+
+                "existing_account": True,
+
+                "message":
+                    f"{tenant.name} has been added "
+                    "to your PrintFlow account.",
+
+                "user": {
+                    "id":
+                        customer.id,
+
+                    "full_name":
+                        customer.full_name,
+
+                    "email":
+                        customer.email,
+
+                    "role":
+                        customer.role,
+                },
+
+                "tenant": {
+                    "id":
+                        tenant.id,
+
+                    "name":
+                        tenant.name,
+
+                    "slug":
+                        tenant.slug,
+
+                    "subdomain":
+                        tenant.subdomain,
+                }
+
+            }, status=201)
+
+
+        # ================================================
+        # NEW CUSTOMER
+        # ================================================
+
+        if User.objects.filter(
+            phone_number=phone_number
+        ).exists():
+
+            return Response({
+                "message":
+                    "An account with this phone "
+                    "number already exists."
+            }, status=400)
+
+
+        customer = User.objects.create_user(
+            username=email,
+
+            email=email,
+
+            password=password,
+
+            full_name=full_name,
+
+            phone_number=phone_number,
+
+            role="customer",
+
+            # IMPORTANT
+            tenant=None,
+
+            is_active=True,
+        )
+
+
+        CustomerTenantMembership.objects.create(
+            customer=customer,
+            tenant=tenant,
+            status="active"
+        )
+
+
+    return Response({
+        "success": True,
+
+        "existing_account": False,
+
+        "message":
+            "Customer account created successfully.",
+
+        "user": {
+            "id":
+                customer.id,
+
+            "full_name":
+                customer.full_name,
+
+            "email":
+                customer.email,
+
+            "role":
+                customer.role,
+        },
+
+        "tenant": {
+            "id":
+                tenant.id,
+
+            "name":
+                tenant.name,
+
+            "slug":
+                tenant.slug,
+
+            "subdomain":
+                tenant.subdomain,
+        }
+
+    }, status=201)
+
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def customer_signin(request):
+
+    email = (
+        request.data
+        .get(
+            "email",
+            ""
+        )
+        .strip()
+        .lower()
+    )
+
+    password = request.data.get(
+        "password",
+        ""
+    )
+
+    tenant_slug = (
+        request.data
+        .get(
+            "tenant_slug",
+            ""
+        )
+        .strip()
+    )
+
+
+    # ========================================================
+    # VALIDATION
+    # ========================================================
+
+    if not email:
+        return Response({
+            "message":
+                "Email address is required."
+        }, status=400)
+
+
+    if not password:
+        return Response({
+            "message":
+                "Password is required."
+        }, status=400)
+
+
+    if not tenant_slug:
+        return Response({
+            "message":
+                "Printing business could not be identified."
+        }, status=400)
+
+
+    # ========================================================
+    # FIND TENANT
+    # ========================================================
+
+    tenant = Tenant.objects.filter(
+        slug=tenant_slug,
+        is_active=True
+    ).first()
+
+
+    if not tenant:
+
+        return Response({
+            "message":
+                "Printing business not found."
+        }, status=404)
+
+
+    # ========================================================
+    # FIND USER
+    # ========================================================
+
+    user = User.objects.filter(
+        email__iexact=email
+    ).first()
+
+
+    if not user:
+
+        return Response({
+            "message":
+                "Invalid email or password."
+        }, status=401)
+
+
+    # ========================================================
+    # CUSTOMER ACCOUNT ONLY
+    # ========================================================
+
+    if user.role != "customer":
+
+        return Response({
+            "message":
+                "This account is not a customer account."
+        }, status=403)
+
+
+    # ========================================================
+    # VERIFY PASSWORD
+    # ========================================================
+
+    if not user.check_password(
+        password
+    ):
+
+        return Response({
+            "message":
+                "Invalid email or password."
+        }, status=401)
+
+
+    # ========================================================
+    # PLATFORM ACCOUNT STATUS
+    # ========================================================
+
+    if not user.is_active:
+
+        return Response({
+            "message":
+                "Your PrintFlow account has been disabled."
+        }, status=403)
+
+
+    # ========================================================
+    # VERIFY MEMBERSHIP
+    # ========================================================
+
+    membership = (
+        CustomerTenantMembership
+        .objects
+        .filter(
+            customer=user,
+            tenant=tenant
+        )
+        .first()
+    )
+
+
+    if not membership:
+
+        return Response({
+            "message":
+                f"Your PrintFlow account is not yet connected "
+                f"to {tenant.name}.",
+            "membership_required": True,
+        }, status=403)
+
+
+    if membership.status == "blocked":
+
+        return Response({
+            "message":
+                f"Your account has been blocked from using "
+                f"{tenant.name}.",
+        }, status=403)
+
+
+    if membership.status != "active":
+
+        return Response({
+            "message":
+                "Your access to this printing business "
+                "is currently inactive."
+        }, status=403)
+
+
+    # ========================================================
+    # TOKENS
+    # ========================================================
+
+    refresh = RefreshToken.for_user(
+        user
+    )
+
+    access_token = str(
+        refresh.access_token
+    )
+
+    refresh_token = str(
+        refresh
+    )
+
+
+    # ========================================================
+    # RESPONSE
+    # ========================================================
+
+    return Response({
+        "success": True,
+
+        "message":
+            "Signed in successfully.",
+
+        "access_token":
+            access_token,
+
+        "refresh_token":
+            refresh_token,
+
+        "user": {
+            "id":
+                user.id,
+
+            "full_name":
+                user.full_name,
+
+            "email":
+                user.email,
+
+            "phone_number":
+                user.phone_number,
+
+            "role":
+                user.role,
+
+            "email_verified":
+                user.email_verified,
+
+            "phone_verified":
+                user.phone_verified,
+        },
+
+        "tenant": {
+            "id":
+                tenant.id,
+
+            "name":
+                tenant.name,
+
+            "slug":
+                tenant.slug,
+
+            "subdomain":
+                tenant.subdomain,
+
+            "logo":
+                tenant.logo,
+
+            "email":
+                tenant.email,
+
+            "phone_number":
+                tenant.phone_number,
+
+            "address":
+                tenant.address,
+        },
+
+        "membership": {
+            "id":
+                membership.id,
+
+            "status":
+                membership.status,
+
+            "joined_at":
+                membership.joined_at,
+        }
+    })

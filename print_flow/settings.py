@@ -16,6 +16,8 @@ from dotenv import load_dotenv
 load_dotenv()
 from datetime import timedelta
 
+from corsheaders.defaults import default_headers
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -70,6 +72,17 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = 'print_flow_app.User'
+
+
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-tenant-slug",
+]
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [

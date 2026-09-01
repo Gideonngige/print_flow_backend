@@ -18,3 +18,6 @@ from .subscription import *
 from .staff import *
 from .settings import *
 from .business_messages import *
+from .customer_dashboard import *
+from .tenant import *
+from .customer_profile import *

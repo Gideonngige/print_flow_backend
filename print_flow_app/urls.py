@@ -20,6 +20,9 @@ from .api_views.subscription import *
 from .api_views.staff import *
 from .api_views.settings import *
 from .api_views.business_messages import *
+from .api_views.customer_dashboard import *
+from .api_views.tenant import *
+from .api_views.customer_profile import *
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -34,6 +37,8 @@ urlpatterns = [
     path('auth/refresh_token/', refresh_token, name='refresh_token'),
     path('auth/delete_account/', delete_account, name='delete_account'),
     path('auth/auth_check/', auth_check, name='auth_check'),
+    path('auth/customer-signup/', customer_signup, name='customer_signup'),
+    path("auth/customer-signin/", customer_signin, name="customer_signin"),
 
 
     # business
@@ -98,16 +103,25 @@ urlpatterns = [
     path("business/messages/<int:message_id>/update/", update_business_message, name="update_business_message"),
     path("business/messages/<int:message_id>/delete/", delete_business_message, name="delete_business_message"),
 
+    # customer dashboard
+    path("customer/dashboard/",customer_dashboard, name="customer_dashboard"),
+
+
+    # tenant
+    path("public/business/<slug:slug>/", public_tenant_detail, name="public_tenant_detail"),
+
+
+
     # documents
-    path("upload_document/", upload_document, name="upload_document"),
-    path("create_print_job/", create_print_job, name="create_print_job"),
-    path("my_documents/", my_documents, name="my_documents"),
-    path("documents/<int:document_id>/delete/", delete_document, name="delete_document"),
+    path("customer/upload-document/", upload_document, name="upload_document"),
+    path("customer/create-print-job/", create_print_job, name="create_print_job"),
+    path("customer/documents/", my_documents, name="my_documents"),
+    path("customer/documents/<int:document_id>/delete/", delete_document, name="delete_document"),
 
     # payments
-    path("pay_print_job/", pay_print_job, name="pay_print_job"),
-    path("mpesa_callback/", mpesa_callback, name="mpesa_callback"),
-    path("print_job_status/<int:print_job_id>/", print_job_status, name="print_job_status"),
+    path("customer/pay-print-job/", pay_print_job, name="pay_print_job"),
+    path("customer/mpesa-callback/", mpesa_callback, name="mpesa_callback"),
+    path("customer/print-job-status/<int:print_job_id>/", print_job_status, name="print_job_status"),
 
     # printing
     path("agent/get_print_job/", get_print_job, name='get_print_job'),
@@ -115,8 +129,11 @@ urlpatterns = [
     path("agent/complete_print_job/", complete_print_job, name='complete_print_job'),
     path("agent/failed_print_job/", failed_print_job, name='failed_print_job'),
     path("agent/printer_status/",printer_status, name='printer_status'),
-    path("print_history/", print_history, name="print_history"),
-    path("print_jobs/<int:print_job_id>/receipt/", download_print_receipt, name="download_print_receipt"),
+    path("customer/print-history/", print_history, name="print_history"),
+    path("customer/print-jobs/<int:print_job_id>/receipt/", download_print_receipt, name="download_print_receipt"),
+
+    # customer profile
+    path("customer/profile/", customer_profile, name="customer_profile"),
 
     # dashboard
     path("user_dashboard/", user_dashboard, name='user_dashboard'),
