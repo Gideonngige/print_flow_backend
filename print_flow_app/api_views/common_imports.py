@@ -70,11 +70,12 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from decimal import Decimal
 
 from django.db.models import Sum
+from django.db.models import Q, Sum
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from print_flow_app.models import Plan, Tenant, Subscription, SubscriptionPayment, User, DarajaConfiguration, Document, Printer, PrintJob, Payment, Message
+from print_flow_app.models import Plan, Pricing, Tenant, Subscription, SubscriptionPayment, User, DarajaConfiguration, Document, Printer, PrintJob, Payment, Message
 
 
 import cloudinary.uploader

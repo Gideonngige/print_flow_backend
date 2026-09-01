@@ -9,12 +9,8 @@ from decimal import Decimal
 # 7. SAAS PLAN / PACKAGE
 # ============================================================
 
-class Plan(models.Model):
 
-    BILLING_CYCLES = [
-        ("monthly", "Monthly"),
-        ("yearly", "Yearly"),
-    ]
+class Plan(models.Model):
 
     name = models.CharField(
         max_length=100,
@@ -30,21 +26,24 @@ class Plan(models.Model):
         blank=True
     )
 
-    # Price for the selected billing cycle
-    price = models.DecimalField(
+    # ========================================================
+    # PRICING
+    # ========================================================
+
+    monthly_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=Decimal("0.00")
     )
 
-    billing_cycle = models.CharField(
-        max_length=20,
-        choices=BILLING_CYCLES,
-        default="monthly"
+    yearly_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00")
     )
 
     # ========================================================
-    # Usage limits
+    # USAGE LIMITS
     # ========================================================
 
     max_users = models.PositiveIntegerField(
@@ -64,7 +63,7 @@ class Plan(models.Model):
     )
 
     # ========================================================
-    # Features
+    # FEATURES
     # ========================================================
 
     allow_color_printing = models.BooleanField(
@@ -100,7 +99,7 @@ class Plan(models.Model):
     )
 
     # ========================================================
-    # Plan status
+    # STATUS
     # ========================================================
 
     is_active = models.BooleanField(
@@ -214,6 +213,11 @@ class Subscription(models.Model):
         ("suspended", "Suspended"),
     ]
 
+    BILLING_CYCLES = [
+        ("monthly", "Monthly"),
+        ("yearly", "Yearly"),
+    ]
+
     tenant = models.OneToOneField(
         "Tenant",
         on_delete=models.CASCADE,
@@ -230,6 +234,14 @@ class Subscription(models.Model):
         max_length=20,
         choices=STATUS_CHOICES,
         default="trial"
+    )
+
+    
+
+    billing_cycle = models.CharField(
+            max_length=20,
+            choices=BILLING_CYCLES,
+            default="monthly"
     )
 
     # ========================================================

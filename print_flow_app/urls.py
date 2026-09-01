@@ -8,19 +8,95 @@ from .api_views.dashboard import *
 from .api_views.admin import *
 from .api_views.messages import *
 
+# new 
+from .api_views.business import *
+from .api_views.customers import *
+from .api_views.print_jobs import *
+from .api_views.pricing import *
+from .api_views.business_documents import *
+from .api_views.printers import *
+from .api_views.business_payments import *
+from .api_views.subscription import *
+from .api_views.staff import *
+from .api_views.settings import *
+from .api_views.business_messages import *
+
 urlpatterns = [
     path('', views.index, name='index'),
 
     # auth
-    path('send_test_email/', send_test_email, name='send_test_email'),
-    path('signup/', signup, name='signup'),
-    path('verify_email/', verify_email, name='verify_email'),
-    path('signin/', signin, name='signin'),
-    path('request_reset/', request_reset, name='request_reset'),
-    path('reset_password/', reset_password, name='reset_password'),
-    path('refresh_token', refresh_token, name='refresh_token'),
-    path('delete_account/', delete_account, name='delete_account'),
-    path('auth_check/', auth_check, name='auth_check'),
+    path('auth/send_test_email/', send_test_email, name='send_test_email'),
+    path('auth/signup/', register_business, name='signup'),
+    path('auth/verify_email/', verify_email, name='verify_email'),
+    path('auth/signin/', signin, name='signin'),
+    path('auth/request_reset/', request_reset, name='request_reset'),
+    path('auth/reset_password/', reset_password, name='reset_password'),
+    path('auth/refresh_token/', refresh_token, name='refresh_token'),
+    path('auth/delete_account/', delete_account, name='delete_account'),
+    path('auth/auth_check/', auth_check, name='auth_check'),
+
+
+    # business
+    path("business/dashboard/", business_dashboard, name="business_dashboard"),
+
+
+    # customers
+    path("business/customers/", business_customers, name="business_customers"),
+    path("business/customers/<int:customer_id>/", business_customer_detail, name="business_customer_detail"),
+    path("business/customers/<int:customer_id>/status/", update_customer_status, name="update_customer_status"),
+
+
+    # print jobs
+    path("business/print-jobs/", business_print_jobs, name="business_print_jobs"),
+    path("business/print-jobs/<int:job_id>/", business_print_job_detail, name="business_print_job_detail"),
+    path("business/print-jobs/<int:job_id>/status/", update_business_print_job_status, name="update_business_print_job_status"),
+    path("business/print-jobs/<int:job_id>/printer/", assign_print_job_printer, name="assign_print_job_printer"),
+
+
+    # pricing
+    path("business/pricing/", business_pricing, name="business_pricing"),
+    path("business/pricing/<int:pricing_id>/", update_business_pricing, name="update_business_pricing"),
+    path("business/pricing/<int:pricing_id>/delete/", delete_business_pricing, name="delete_business_pricing"),
+
+    # business documents
+    path("business/documents/", business_documents, name="business_documents"),
+    path("business/documents/<int:document_id>/", business_document_detail, name="business_document_detail"),
+    path("business/documents/<int:document_id>/delete/", delete_business_document, name="delete_business_document"),
+
+    # printers
+    path("business/printers/", business_printers, name="business_printers"),
+    path("business/printers/<int:printer_id>/", business_printer_detail, name="business_printer_detail"),
+    path("business/printers/<int:printer_id>/update/",update_business_printer, name="update_business_printer"),
+    path("business/printers/<int:printer_id>/default/", set_default_printer, name="set_default_printer"),
+    path("business/printers/<int:printer_id>/delete/", delete_business_printer, name="delete_business_printer"),
+
+
+    # business payments
+    path("business/payments/", business_payments, name="business_payments"),
+    path("business/payments/<int:payment_id>/", business_payment_detail, name="business_payment_detail"),
+
+    # subscription
+    path("business/subscription/", business_subscription, name="business_subscription"),
+    path("business/subscription/change-plan/", change_business_plan, name="change_business_plan"),
+    path("business/subscription/auto-renew/", update_subscription_auto_renew, name="update_subscription_auto_renew"),
+
+    # staff
+    path("business/staff/", business_staff, name="business_staff"),
+    path("business/staff/<int:staff_id>/", business_staff_detail, name="business_staff_detail"),
+    path("business/staff/<int:staff_id>/update/", update_business_staff, name="update_business_staff"),
+    path("business/staff/<int:staff_id>/status/", update_staff_status, name="update_staff_status"),
+    path("business/staff/<int:staff_id>/password/", reset_staff_password, name="reset_staff_password"),
+    path("business/staff/<int:staff_id>/delete/", delete_business_staff, name="delete_business_staff"),
+
+    # settings
+    path("business/settings/", business_settings, name="business_settings"),
+    path("business/settings/daraja/", business_daraja_settings, name="business_daraja_settings"),
+
+    # business messages
+    path("business/messages/", business_messages, name="business_messages"),
+    path("business/messages/<int:message_id>/", business_message_detail, name="business_message_detail"),
+    path("business/messages/<int:message_id>/update/", update_business_message, name="update_business_message"),
+    path("business/messages/<int:message_id>/delete/", delete_business_message, name="delete_business_message"),
 
     # documents
     path("upload_document/", upload_document, name="upload_document"),
