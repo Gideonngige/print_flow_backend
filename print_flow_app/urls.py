@@ -29,6 +29,7 @@ from .api_views.platform_plans import *
 from .api_views.platform_subscription import *
 from .api_views.platform_payments import *
 from .api_views.platform_users import *
+from .api_views.print_agent_apis import *
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -80,6 +81,11 @@ urlpatterns = [
     path("business/printers/<int:printer_id>/update/",update_business_printer, name="update_business_printer"),
     path("business/printers/<int:printer_id>/default/", set_default_printer, name="set_default_printer"),
     path("business/printers/<int:printer_id>/delete/", delete_business_printer, name="delete_business_printer"),
+    path("business/print-agents/", business_print_agents, name="business_print_agents"),
+    path("business/print-agents/<int:agent_id>/", business_print_agent_detail, name="business_print_agent_detail"),
+    path("business/print-agents/<int:agent_id>/regenerate-key/", business_regenerate_agent_key, name="business_regenerate_agent_key"),
+    path("business/print-agents/<int:agent_id>/disconnect-printer/", business_disconnect_agent_printer, name="business_disconnect_agent_printer"),
+    path("business/print-jobs/recover-stale/", recover_stale_jobs, name="recover_stale_jobs"),
 
 
     # business payments
@@ -168,6 +174,17 @@ urlpatterns = [
     path("platform/users/", platform_users, name="platform_users"),
     path("platform/users/<int:user_id>/", platform_user_detail, name="platform_user_detail"),
     path("platform/users/<int:user_id>/status/", platform_update_user_status, name="platform_update_user_status"),
+
+    # print agent APIs
+    path("agent/config/", agent_config, name="agent_config"),
+    path("agent/heartbeat/", agent_heartbeat, name="agent_heartbeat"),
+    path("agent/next-job/", agent_next_job, name="agent_next_job"),
+    path("agent/start-printing/",agent_start_printing, name="agent_start_printing"),
+    path("agent/complete-job/", agent_complete_job, name="agent_complete_job"),
+    path("agent/fail-job/", agent_fail_job, name="agent_fail_job"),
+    path("agent/printers/sync/", agent_sync_printers, name="agent_sync_printers"),
+    path("business/discovered-printers/", business_discovered_printers, name="business_discovered_printers"),
+    path("business/printers/<int:printer_id>/map-local/", business_map_local_printer, name="business_map_local_printer"),
 
 
 

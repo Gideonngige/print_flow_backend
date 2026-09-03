@@ -1067,6 +1067,12 @@ class Printer(models.Model):
         null=True
     )
 
+    local_printer_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
     # --------------------------------------------------------
     # Print Agent Information
     # --------------------------------------------------------
@@ -1120,6 +1126,63 @@ class Printer(models.Model):
 
 
 # ============================================================
+# 13. PRINT AGENT
+# ============================================================
+
+class PrintAgent(models.Model):
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="print_agents"
+    )
+
+    printer = models.ForeignKey(
+        Printer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="agents"
+    )
+
+    name = models.CharField(
+        max_length=150
+    )
+
+    api_key = models.CharField(
+        max_length=255,
+        unique=True
+    )
+
+    machine_name = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    is_active = models.BooleanField(
+        default=True
+    )
+
+    last_seen = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def __str__(self):
+        return (
+            f"{self.name} - "
+            f"{self.tenant.name}"
+        )
+
+
+# ============================================================
 # 4. PRINT JOB
 # ============================================================
 
@@ -1159,6 +1222,14 @@ class PrintJob(models.Model):
         related_name="print_jobs",
         null=True,
         blank=True
+    )
+
+    print_agent = models.ForeignKey(
+        PrintAgent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="print_jobs"
     )
 
     copies = models.PositiveIntegerField(
@@ -1393,3 +1464,61 @@ class Message(models.Model):
             f"{self.name} - "
             f"{self.subject}"
         )
+
+
+
+class DiscoveredPrinter(models.Model):
+    agent = models.ForeignKey(
+        PrintAgent,
+        on_delete=models.CASCADE,
+        related_name="discovered_printers"
+    )
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="discovered_printers"
+    )
+
+    system_name = models.CharField(
+        max_length=255
+    )
+
+    display_name = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    status = models.CharField(
+        max_length=50,
+        blank=True
+    )
+
+    is_default = models.BooleanField(
+        default=False
+    )
+
+    last_seen = models.DateTimeField(
+        default=timezone.now
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        unique_together = (
+            "agent",
+            "system_name",
+        )
+
+    def __str__(self):
+        return (
+            f"{self.system_name} - "
+            f"{self.agent.name}"
+        )
+

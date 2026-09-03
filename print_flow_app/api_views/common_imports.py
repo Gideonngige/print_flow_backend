@@ -75,7 +75,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from print_flow_app.models import Plan, Pricing, Tenant, Subscription, SubscriptionPayment, User, CustomerTenantMembership, DarajaConfiguration, Document, Printer, PrintJob, Payment, Message
+from print_flow_app.models import Plan, PrintAgent, DiscoveredPrinter, Pricing, Tenant, Subscription, SubscriptionPayment, User, CustomerTenantMembership, DarajaConfiguration, Document, Printer, PrintJob, Payment, Message
 
 
 import cloudinary.uploader

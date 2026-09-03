@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Plan, Tenant, Subscription, SubscriptionPayment, User, CustomerTenantMembership, DarajaConfiguration, Pricing, Document, Printer, PrintJob, Payment, Message
+from .models import Plan, Tenant, Subscription, SubscriptionPayment, User, CustomerTenantMembership, DarajaConfiguration, Pricing, Document, Printer, PrintJob, Payment, Message, PrintAgent, DiscoveredPrinter
 
 # Register your models here.
 admin.site.register(Plan)
@@ -15,3 +15,5 @@ admin.site.register(Printer)
 admin.site.register(PrintJob)
 admin.site.register(Payment)
 admin.site.register(Message)
+admin.site.register(PrintAgent)
+admin.site.register(DiscoveredPrinter)
