@@ -20,20 +20,9 @@ STALE_AGENT_MINUTES = 5
 
 
 def recover_stale_print_jobs():
-    """
-    Return abandoned printing jobs back to the queue.
-
-    A job is considered stale when:
-    - status == "printing"
-    - it has an assigned PrintAgent
-    - agent.last_seen is older than STALE_AGENT_MINUTES
-      OR agent.last_seen is null
-    """
-
     cutoff = (
         timezone.now()
-        -
-        datetime.timedelta(
+        - datetime.timedelta(
             minutes=STALE_AGENT_MINUTES
         )
     )
@@ -46,11 +35,6 @@ def recover_stale_print_jobs():
             PrintJob.objects
             .select_for_update(
                 skip_locked=True
-            )
-            .select_related(
-                "print_agent",
-                "printer",
-                "document",
             )
             .filter(
                 status="printing",
@@ -69,18 +53,22 @@ def recover_stale_print_jobs():
 
         for job in stale_jobs:
 
-            old_agent = (
-                job.print_agent
-            )
+            old_agent_name = None
+            old_printer_name = None
 
-            old_printer = (
-                job.printer
-            )
+            if job.print_agent:
+                old_agent_name = (
+                    job.print_agent.name
+                )
 
+            if job.printer:
+                old_printer_name = (
+                    job.printer.name
+                )
+
+            # Put job back into queue
             job.status = "queued"
-
             job.print_agent = None
-
             job.printer = None
 
             job.save(
@@ -92,11 +80,10 @@ def recover_stale_print_jobs():
                 ]
             )
 
+            # Reset document status
             if job.document:
 
-                job.document.status = (
-                    "pending"
-                )
+                job.document.status = "pending"
 
                 job.document.save(
                     update_fields=[
@@ -105,22 +92,9 @@ def recover_stale_print_jobs():
                 )
 
             recovered_jobs.append({
-                "id":
-                    job.id,
-
-                "old_agent":
-                    (
-                        old_agent.name
-                        if old_agent
-                        else None
-                    ),
-
-                "old_printer":
-                    (
-                        old_printer.name
-                        if old_printer
-                        else None
-                    ),
+                "id": job.id,
+                "old_agent": old_agent_name,
+                "old_printer": old_printer_name,
             })
 
     return recovered_jobs
