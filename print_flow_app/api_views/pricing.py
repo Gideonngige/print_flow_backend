@@ -1,5 +1,7 @@
 from .common_imports import *
 
+from .serializers import PublicPlanSerializer
+
 
 # ============================================================
 # LIST + CREATE BUSINESS PRICING
@@ -354,3 +356,48 @@ def delete_business_pricing(
         "message":
             "Pricing rule deleted successfully."
     })
+
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def public_plans(request):
+    """
+    Public endpoint used by the pricing page.
+
+    GET /api/v1/public/plans/
+    """
+
+    try:
+        plans = (
+            Plan.objects
+            .filter(is_active=True)
+            .order_by(
+                "monthly_price",
+                "id"
+            )
+        )
+
+        serializer = PublicPlanSerializer(
+            plans,
+            many=True
+        )
+
+        return Response(
+            {
+                "success": True,
+                "plans": serializer.data,
+            },
+            status=status.HTTP_200_OK
+        )
+
+    except Exception as error:
+        return Response(
+            {
+                "success": False,
+                "message": "Unable to load subscription plans.",
+                "error": str(error),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -69,6 +69,7 @@ urlpatterns = [
     path("business/pricing/", business_pricing, name="business_pricing"),
     path("business/pricing/<int:pricing_id>/", update_business_pricing, name="update_business_pricing"),
     path("business/pricing/<int:pricing_id>/delete/", delete_business_pricing, name="delete_business_pricing"),
+    path("public/plans/", public_plans, name="public-plans"),
 
     # business documents
     path("business/documents/", business_documents, name="business_documents"),
