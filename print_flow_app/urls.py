@@ -97,6 +97,8 @@ urlpatterns = [
     path("business/subscription/", business_subscription, name="business_subscription"),
     path("business/subscription/change-plan/", change_business_plan, name="change_business_plan"),
     path("business/subscription/auto-renew/", update_subscription_auto_renew, name="update_subscription_auto_renew"),
+    path("mpesa/subscription/callback/", subscription_mpesa_callback, name="subscription-mpesa-callback"),
+    path("business/subscription/payments/<int:payment_id>/status/", subscription_payment_status, name="subscription-payment-status"),
 
     # staff
     path("business/staff/", business_staff, name="business_staff"),

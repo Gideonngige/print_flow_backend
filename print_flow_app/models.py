@@ -363,6 +363,24 @@ class SubscriptionPayment(models.Model):
         default="KES"
     )
 
+    pending_plan = models.ForeignKey(
+        Plan,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pending_subscription_payments",
+    )
+
+    billing_cycle = models.CharField(
+        max_length=20,
+        choices=[
+            ("monthly", "Monthly"),
+            ("yearly", "Yearly"),
+        ],
+        null=True,
+        blank=True,
+    )
+
     # ========================================================
     # Payment method
     # ========================================================
