@@ -66,3 +66,54 @@ def verify_agent(request):
 
     return token == os.getenv("AGENT_API_KEY")
 
+
+
+# helper function to check if can add staff
+def can_add_staff(
+    tenant
+):
+
+    state = (
+        get_subscription_state(
+            tenant
+        )
+    )
+
+    if not state["is_active"]:
+        return (
+            False,
+            "Subscription inactive."
+        )
+
+    subscription = state[
+        "subscription"
+    ]
+
+    plan = subscription.plan
+
+    if not plan.allow_staff_accounts:
+        return (
+            False,
+            "Your plan does not include staff accounts."
+        )
+
+    current_users = (
+        User.objects
+        .filter(
+            tenant=tenant
+        )
+        .count()
+    )
+
+    if (
+        plan.max_users
+        and current_users
+        >= plan.max_users
+    ):
+        return (
+            False,
+            "Your plan's user limit has been reached."
+        )
+
+    return True, None
+

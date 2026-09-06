@@ -3,6 +3,9 @@ from print_flow_app.services.mpesa import (
     initiate_stk_push,
     normalize_mpesa_phone,
 )
+from print_flow_app.utils.subscription import (
+    get_subscription_state,
+)
 
 
 # ============================================================
@@ -1556,3 +1559,213 @@ def update_subscription_auto_renew(request):
         "auto_renew":
             subscription.auto_renew,
     })
+
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def business_subscription_status(
+    request
+):
+
+    user = request.user
+
+    if user.role not in [
+        "business_admin",
+        "staff",
+    ]:
+        return Response(
+            {
+                "message":
+                    "Not allowed."
+            },
+            status=403,
+        )
+
+    tenant = user.tenant
+
+    if not tenant:
+        return Response(
+            {
+                "message":
+                    "Business not found."
+            },
+            status=404,
+        )
+
+    state = (
+        get_subscription_state(
+            tenant
+        )
+    )
+
+    subscription = state[
+        "subscription"
+    ]
+
+    if not subscription:
+        return Response(
+            {
+                "success": True,
+                "has_subscription":
+                    False,
+                "is_active":
+                    False,
+                "is_expired":
+                    False,
+                "subscription":
+                    None,
+                "plan":
+                    None,
+                "usage":
+                    None,
+            }
+        )
+
+    plan = subscription.plan
+
+    # ---------------------------------------
+    # Usage
+    # ---------------------------------------
+
+    users_count = (
+        User.objects
+        .filter(
+            tenant=tenant
+        )
+        .count()
+    )
+
+    documents_count = (
+        Document.objects
+        .filter(
+            tenant=tenant
+        )
+        .count()
+    )
+
+    print_jobs_count = (
+        PrintJob.objects
+        .filter(
+            tenant=tenant
+        )
+        .count()
+    )
+
+    storage_bytes = (
+        Document.objects
+        .filter(
+            tenant=tenant
+        )
+        .aggregate(
+            total=Sum("size")
+        )
+        .get("total")
+        or 0
+    )
+
+    storage_mb = round(
+        storage_bytes /
+        (1024 * 1024),
+        2,
+    )
+
+    return Response(
+        {
+            "success": True,
+
+            "has_subscription":
+                state[
+                    "has_subscription"
+                ],
+
+            "is_active":
+                state[
+                    "is_active"
+                ],
+
+            "is_expired":
+                state[
+                    "is_expired"
+                ],
+
+            "subscription": {
+                "id":
+                    subscription.id,
+
+                "status":
+                    subscription.status,
+
+                "billing_cycle":
+                    subscription.billing_cycle,
+
+                "current_period_start":
+                    subscription.current_period_start,
+
+                "current_period_end":
+                    subscription.current_period_end,
+            },
+
+            "plan": {
+                "id":
+                    plan.id,
+
+                "name":
+                    plan.name,
+
+                "slug":
+                    plan.slug,
+
+                "max_users":
+                    plan.max_users,
+
+                "max_documents":
+                    plan.max_documents,
+
+                "max_print_jobs":
+                    plan.max_print_jobs,
+
+                "max_storage_mb":
+                    plan.max_storage_mb,
+
+                "allow_color_printing":
+                    plan.allow_color_printing,
+
+                "allow_double_sided":
+                    plan.allow_double_sided,
+
+                "allow_multiple_printers":
+                    plan.allow_multiple_printers,
+
+                "allow_staff_accounts":
+                    plan.allow_staff_accounts,
+
+                "allow_custom_domain":
+                    plan.allow_custom_domain,
+
+                "advanced_reports":
+                    plan.advanced_reports,
+
+                "api_access":
+                    plan.api_access,
+
+                "priority_support":
+                    plan.priority_support,
+            },
+
+            "usage": {
+                "users":
+                    users_count,
+
+                "documents":
+                    documents_count,
+
+                "print_jobs":
+                    print_jobs_count,
+
+                "storage_mb":
+                    storage_mb,
+            },
+        }
+    )

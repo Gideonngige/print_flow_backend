@@ -499,7 +499,7 @@ def register_business(request):
 
         verification_link = (
             "https://print-flow-backend-ppm9"
-            ".onrender.com/"
+            ".onrender.com/api/v1/"
             f"verify_email/?token="
             f"{verification_token}"
         )
@@ -806,7 +806,7 @@ def resend_verification_email(request):
 
     link = (
         "https://print-flow-backend-ppm9"
-        ".onrender.com/"
+        ".onrender.com/api/v1/"
         f"verify_email/?token={token}"
     )
 
@@ -1078,7 +1078,7 @@ def request_reset(request):
 
     link = (
         "https://print-flow-backend-ppm9"
-        ".onrender.com/"
+        ".onrender.com/api/v1/"
         f"reset_password/?token={token}"
     )
 
