@@ -59,7 +59,8 @@ def get_subscription_state(tenant):
     active = (
         subscription.status == "active"
         and not expired
-    )
+    ) 
+    print(f"Has subscription: True. Is active: {active}. Is expired: {expired}. Subscription: {subscription}")
 
     return {
         "has_subscription": True,
