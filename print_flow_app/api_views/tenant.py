@@ -1,53 +1,7 @@
 from .common_imports import *
-
-
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def public_tenant_detail(
-    request,
-    slug
-):
-    tenant = Tenant.objects.filter(
-        slug=slug,
-        is_active=True
-    ).first()
-
-    if not tenant:
-        return Response({
-            "message":
-                "Printing business not found."
-        }, status=404)
-
-    return Response({
-        "success": True,
-
-        "tenant": {
-            "id":
-                tenant.id,
-
-            "name":
-                tenant.name,
-
-            "slug":
-                tenant.slug,
-
-            "subdomain":
-                tenant.subdomain,
-
-            "logo":
-                tenant.logo,
-
-            "email":
-                tenant.email,
-
-            "phone_number":
-                tenant.phone_number,
-
-            "address":
-                tenant.address,
-        }
-    })
-
+from print_flow_app.utils.subscription import (
+    get_subscription_state,
+)
 
 
 # @api_view(["GET"])
@@ -56,63 +10,110 @@ def public_tenant_detail(
 #     request,
 #     slug
 # ):
-
-#     tenant = get_object_or_404(
-#         Tenant,
+#     tenant = Tenant.objects.filter(
 #         slug=slug,
-#         is_active=True,
-#     )
+#         is_active=True
+#     ).first()
 
-#     state = (
-#         get_subscription_state(
-#             tenant
-#         )
-#     )
+#     if not tenant:
+#         return Response({
+#             "message":
+#                 "Printing business not found."
+#         }, status=404)
 
-#     return Response(
-#         {
-#             "success": True,
+#     return Response({
+#         "success": True,
 
-#             "tenant": {
-#                 "id":
-#                     tenant.id,
+#         "tenant": {
+#             "id":
+#                 tenant.id,
 
-#                 "name":
-#                     tenant.name,
+#             "name":
+#                 tenant.name,
 
-#                 "slug":
-#                     tenant.slug,
+#             "slug":
+#                 tenant.slug,
 
-#                 "email":
-#                     tenant.email,
+#             "subdomain":
+#                 tenant.subdomain,
 
-#                 "phone":
-#                     tenant.phone,
+#             "logo":
+#                 tenant.logo,
 
-#                 "address":
-#                     tenant.address,
+#             "email":
+#                 tenant.email,
 
-#                 "logo":
-#                     tenant.logo.url
-#                     if tenant.logo
-#                     else None,
-#             },
+#             "phone_number":
+#                 tenant.phone_number,
 
-#             "subscription": {
-#                 "has_subscription":
-#                     state[
-#                         "has_subscription"
-#                     ],
-
-#                 "is_active":
-#                     state[
-#                         "is_active"
-#                     ],
-
-#                 "is_expired":
-#                     state[
-#                         "is_expired"
-#                     ],
-#             },
+#             "address":
+#                 tenant.address,
 #         }
-#     )
+#     })
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def public_tenant_detail(
+    request,
+    slug
+):
+
+    tenant = get_object_or_404(
+        Tenant,
+        slug=slug,
+        is_active=True,
+    )
+
+    state = (
+        get_subscription_state(
+            tenant
+        )
+    )
+
+    return Response(
+        {
+            "success": True,
+
+            "tenant": {
+                "id":
+                    tenant.id,
+
+                "name":
+                    tenant.name,
+
+                "slug":
+                    tenant.slug,
+
+                "email":
+                    tenant.email,
+
+                "phone":
+                    tenant.phone_number,
+
+                "address":
+                    tenant.address,
+
+                "logo":
+                    tenant.logo
+            },
+
+            "subscription": {
+                "has_subscription":
+                    state[
+                        "has_subscription"
+                    ],
+
+                "is_active":
+                    state[
+                        "is_active"
+                    ],
+
+                "is_expired":
+                    state[
+                        "is_expired"
+                    ],
+            },
+        }
+    )

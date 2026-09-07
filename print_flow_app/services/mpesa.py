@@ -18,7 +18,6 @@ def normalize_mpesa_phone(phone):
     to:
     254712345678
     """
-    print(f"Normalizing phone number: {phone}")
 
     phone = str(phone).strip().replace(" ", "")
 
@@ -64,7 +63,6 @@ def get_mpesa_access_token():
         ),
         timeout=30,
     )
-    print(f"MPESA Access Token Response: {response.text}")
 
     response.raise_for_status()
 
@@ -139,8 +137,6 @@ def initiate_stk_push(
         "TransactionDesc":
             str(description)[:30],
     }
-
-    print("STK PAYLOAD:", payload)
 
     response = requests.post(
         url,
